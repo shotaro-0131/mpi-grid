@@ -6,6 +6,7 @@ from sklearn.model_selection import KFold
 from torch.utils.data import DataLoader
 import torch.optim as optim
 import torch.nn as nn
+from sklearn.metrics import mean_squared_error
 class Evaluator:
 
     def __init__(self, tr_x, tr_y, te_x, te_y):
@@ -64,10 +65,10 @@ class Evaluator:
             # print(pred.numpy().reshape(pred.shape[0]))
 
             r = np.corrcoef(target.numpy().reshape(pred.shape[0]),pred.numpy().reshape(pred.shape[0]))[0][1]
-
+            mse = mean_squared_error(y_true=target, y_pred=pred)
 
     #             error = np.corrcoef(pred,target)[0][1]
-        return error, r
+        return error, r, mse
 
     def get_optimizer(self, model):
 
@@ -87,8 +88,9 @@ class Evaluator:
         device = "cuda" if torch.cuda.is_available() else "cpu"
         average = []
         ave =[]
+        mses = []
 
-        for train_index, test_index in KFold(n_splits=3, shuffle=False, random_state=2525).split(list(range(840))):
+        for train_index, test_index in KFold(n_splits=3, shuffle=True, random_state=2525).split(list(range(840))):
             tr_id = [i for i, k in enumerate(self.tr_id) if k in train_index]
             tr_x = self.tr_x[tr_id]
             tr_y = self.tr_y[tr_id]
@@ -103,7 +105,7 @@ class Evaluator:
 
         
 
-            model = Net.Net(self.num_layers, self.kernel_sizes, self.num_filters, self.poolings, self.pooling_size, self.mid_unit)
+            model = Net.Net(self.num_layers, self.kernel_sizes, self.num_filters, self.pooling, self.mid_unit).to(device)
             optimizer = self.get_optimizer(model)
             
             for step in range(EPOCH):
@@ -117,12 +119,12 @@ class Evaluator:
                 #     return error_rate
                 # if step == 9 and error_rate > 100:
                 #     return error_rate
-            error_rate, r = self.test(model, device, test_loader)
-            
+            error_rate, r , mse= self.test(model, device, test_loader)
+            mses.append(mse)
             average.append(error_rate)
             ave.append(r)
             # print(error_rate,r,end=" ")
-        return sum(average)/3, sum(ave)/3
+        return sum(average)/3, sum(ave)/3, sum(mses)/3
 
 
 

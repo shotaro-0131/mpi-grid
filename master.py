@@ -174,7 +174,7 @@ def main():
     size = comm.Get_size()
     rank = comm.Get_rank()
     print(rank)
-    BATCH_SIZE = 2
+    BATCH_SIZE = 10
 
     if rank == 0:
 
@@ -192,7 +192,7 @@ def main():
         send_list = np.array(l, dtype=np.int32)
         print(len(l))
 
-        recv_list = np.zeros(int(len(l)/BATCH_SIZE+1)*BATCH_SIZE*2, dtype=np.float32).reshape(int(len(l)/BATCH_SIZE+1)*BATCH_SIZE,2)
+        recv_list = np.zeros(int(len(l)/BATCH_SIZE+1)*BATCH_SIZE*3, dtype=np.float32).reshape(int(len(l)/BATCH_SIZE+1)*BATCH_SIZE,3)
 
         # Initialize
         req = []
@@ -213,7 +213,7 @@ def main():
 
         while i < len(l):
             if time.time() -t1 > 100:
-                pd.DataFrame(data=np.array(recv_list).reshape(int(len(l)/BATCH_SIZE+1)*BATCH_SIZE,2)[:len(l)]).to_csv("output.csv")
+                pd.DataFrame(data=np.array(recv_list).reshape(int(len(l)/BATCH_SIZE+1)*BATCH_SIZE,3)[:len(l)]).to_csv("output.csv")
                 t1 = time.time()
 
             if sum(stock)!=0:
@@ -244,7 +244,7 @@ def main():
             comm.Isend([0, MPI.INT], dest=i+1, tag=20)
 
         # print(np.array(send_list).shape, np.array(recv_list).reshape(BATCH_SIZE,2)[:len(send_list)].shape)
-        pd.DataFrame(data=np.concatenate([np.array(send_list), np.array(recv_list).reshape(int(len(l)/BATCH_SIZE+1)*BATCH_SIZE,2)[:len(l)]],axis=1)).to_csv("output-final.csv")
+        pd.DataFrame(data=np.concatenate([np.array(send_list), np.array(recv_list).reshape(int(len(l)/BATCH_SIZE+1)*BATCH_SIZE,3)[:len(l)]],axis=1)).to_csv("output-final.csv")
 
     # worker
     else:
@@ -276,17 +276,16 @@ def main():
 
             # TODO
 
-            data = np.zeros(BATCH_SIZE*2, dtype=np.float32).reshape(BATCH_SIZE,2)
+            data = np.zeros(BATCH_SIZE*3, dtype=np.float32).reshape(BATCH_SIZE,3)
 
             for i in range(rdata.shape[0]):
                 if rdata[i][0] == 0:
                     break
                 evaluator.setParams(rdata[i])
-                data[i][0],data[i][1] = evaluator.run()
+                data[i][0],data[i][1], data[i][2] = evaluator.run()
 
 
-            print(data)
-
+                
             comm.Send(data,dest=0,tag=20)
 
         print("finish")
