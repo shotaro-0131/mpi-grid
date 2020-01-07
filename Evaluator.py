@@ -29,13 +29,11 @@ class Evaluator:
         self.num_layers = params[0]
         self.kernel_sizes = params[1:5]
         self.num_filters = params[5:9]
-        self.pooling = params[9]
-        self.mid_unit = params[10]
+        self.poolings = params[9:12]
+        self.pooling_size = params[12:15]
+        self.mid_unit = params[15]
         # self.mid_unit2 = params[11]
-        self.lr = params[11]
-        print("lr%d" %self.lr)
-        print(self.kernel_sizes)
-        print(self.num_filters)
+        self.lr = params[16]
 
     def train(self, model, device, train_loader, optimizer):
         criterion = nn.MSELoss()
@@ -69,7 +67,7 @@ class Evaluator:
 
 
     #             error = np.corrcoef(pred,target)[0][1]
-        return (1-error)**2, r
+        return error, r
 
     def get_optimizer(self, model):
 
@@ -86,7 +84,7 @@ class Evaluator:
         EPOCH = 10
         BATCHSIZE = 100
         # device = "cuda" 
-        device = "cpu"
+        device = "cuda" if torch.cuda.is_available() else "cpu"
         average = []
         ave =[]
 
@@ -105,7 +103,7 @@ class Evaluator:
 
         
 
-            model = Net.Net(self.num_layers, self.kernel_sizes, self.num_filters, self.pooling, self.mid_unit)
+            model = Net.Net(self.num_layers, self.kernel_sizes, self.num_filters, self.poolings, self.pooling_size, self.mid_unit)
             optimizer = self.get_optimizer(model)
             
             for step in range(EPOCH):

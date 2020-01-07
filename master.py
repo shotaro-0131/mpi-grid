@@ -5,6 +5,103 @@ import time
 import sys
 import itertools
 import Evaluator
+def params2():
+    num_layer = [3]
+    kernel_sizes = [3,5]
+    num_filters = [32, 64, 128, 256]
+    pooling = [0, 1]
+    pooling_size = [1,2,4]
+    mid_unit = [100, 200, 400]
+#     mid_unit2 = [0, 100, 200, 400]
+    learning_rate = [2,3]
+
+    params = []
+    for n in num_layer:
+
+
+        for pool in pooling:
+            
+            for m in mid_unit:
+                for ps1 in pooling_size:
+                    rest = 14
+                    rest = int(rest/ps1)
+                    k_sizes = []
+                    n_filters = []
+                    pooling_size2 = [i for i in pooling_size if i< rest]
+                    k_sizes.append([i for i in kernel_sizes if i <= rest])
+                    if ps1 == 1:
+                        pooling1 = [2]
+                    else:
+                        pooling1 = pooling
+
+                    for p1 in pooling1:
+                        for ps2 in pooling_size2:
+                            rest = int(rest/ps2)
+                
+                            pooling_size3 = [i for i in pooling_size if i< rest]
+                            k_sizes.append([i for i in kernel_sizes if i <= rest])
+                            if ps2 == 1:
+                                pooling2 = [2]
+                            else:
+                                pooling2 = pooling
+                            for p2 in pooling2:
+                                for ps3 in pooling_size3:
+                                    rest = int(rest/ps3)
+                                    k_sizes.append([i for i in kernel_sizes if i <= rest])
+                                    if ps3 == 1:
+                                        pooling3 =[2]
+                                    for p3 in pooling3:
+                # for m2 in mid_unit2:
+                                        for lr in learning_rate:
+
+
+                                            # k_sizes = [kernel_sizes for i in range(n)]
+                                            while len(k_sizes) < 4:
+                                                k_sizes.append([0])
+                                            n_filters = [num_filters for i in range(n)]
+                                            while len(n_filters) < 4:
+                                                n_filters.append([0])
+
+
+
+
+                                            for k1 in k_sizes[0]:
+                                                for k2 in k_sizes[1]:
+                                                    for k3 in k_sizes[2]:
+                                                        for k4 in k_sizes[3]:
+                                                            # for k5 in k_sizes[4]:
+                            #                                     for k6 in k_sizes[5]:
+
+                                                                        for f1 in n_filters[0]:
+                                                                            for f2 in n_filters[1]:
+                                                                                for f3 in n_filters[2]:
+                                                                                    for f4 in n_filters[3]:
+                            #                                                             for f5 in n_filters[4]:
+
+                                                                                                p = [n]
+
+                                                                                                p.append(k1)
+                                                                                                p.append(k2)
+                                                                                                p.append(k3)
+                                                                                                p.append(k4)
+                                                                                                # p.append(k5)
+                            #                                                                     p.append(k6)
+                                                                                                p.append(f1)
+                                                                                                p.append(f2)
+                                                                                                p.append(f3)
+                                                                                                p.append(f4)
+                            #                                                                     p.append(f5)
+                                                                                                p.append(p1)
+                                                                                                p.append(p2)
+                                                                                                p.append(p3)
+                                                                                                p.append(ps1)
+                                                                                                p.append(ps2)
+                                                                                                p.append(ps3)
+                                                                                                p.append(m)
+                                                                                                # p.append(m2)
+                                                                                                p.append(lr)
+                                                                                                params.append(p)
+    return params
 
 def params():
     num_layer = [1,2,3,4]
@@ -86,7 +183,7 @@ def main():
 
 
         #set up sendbuf and recvbuf
-        l = params()
+        l = params2()
         # l = pd.read_csv("params.csv").drop(["ID"],axis="columns").values.tolist()
         train_x = pd.read_csv("mpitest/train_x.csv").values.astype(np.float32).reshape(1,-1)
         test_x = pd.read_csv("mpitest/test_x.csv").drop(["ID"],axis=1).values.astype(np.float32).reshape(1,-1)
@@ -112,8 +209,13 @@ def main():
 
         stock = np.zeros(size-1).tolist()
         i = size
+        t1 = time.time()
 
         while i < len(l):
+            if time.time() -t1 > 100:
+                pd.DataFrame(data=np.array(recv_list).reshape(int(len(l)/BATCH_SIZE+1)*BATCH_SIZE,2)[:len(l)]).to_csv("output.csv")
+                t1 = time.time()
+
             if sum(stock)!=0:
                 target = stock.index(1)
 
@@ -142,7 +244,7 @@ def main():
             comm.Isend([0, MPI.INT], dest=i+1, tag=20)
 
         # print(np.array(send_list).shape, np.array(recv_list).reshape(BATCH_SIZE,2)[:len(send_list)].shape)
-        pd.DataFrame(data=np.concatenate([np.array(send_list), np.array(recv_list).reshape(int(len(l)/BATCH_SIZE+1)*BATCH_SIZE,2)[:len(l)]],axis=1)).to_csv("output.csv")
+        pd.DataFrame(data=np.concatenate([np.array(send_list), np.array(recv_list).reshape(int(len(l)/BATCH_SIZE+1)*BATCH_SIZE,2)[:len(l)]],axis=1)).to_csv("output-final.csv")
 
     # worker
     else:
@@ -161,7 +263,7 @@ def main():
 
         while  finish.Get_status() == False:
 
-            rdata = np.zeros(12*BATCH_SIZE, dtype=np.int32)
+            rdata = np.zeros(17*BATCH_SIZE, dtype=np.int32)
             req = comm.Irecv(rdata, source=0, tag=10)
             while True:
                 if finish.Get_status() == True:
@@ -170,7 +272,7 @@ def main():
                     break
 
 
-            rdata = rdata.reshape(BATCH_SIZE, 12)
+            rdata = rdata.reshape(BATCH_SIZE, 17)
 
             # TODO
 
