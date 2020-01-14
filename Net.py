@@ -33,6 +33,9 @@ class Net(nn.Module):
     self.out_height = 1
     self.out_width = 14
     self.bnorms = nn.ModuleList([nn.BatchNorm2d(num_filters[0])])
+    self.out_width = int(self.out_width /pooling_size[0])
+    self.poolings.append(get_pooling(pooling[0])(kernel_size=(1,pooling_size[0]), stride=(1,pooling_size[0]), padding=(0,0)))
+      
     
   #mid unit
     for i in range(1, num_layer):
@@ -40,20 +43,20 @@ class Net(nn.Module):
       self.convs.append(nn.Conv2d(in_channels=num_filters[i-1], out_channels=num_filters[i], kernel_size=(1,kernel_sizes[i]),
 #                                   padding=(0,int(kernel_sizes[i]/2)),
                                   stride=(1,1)))
-      self.out_width = int(self.out_width /pooling_size[i-1])
-      self.poolings.append(get_pooling(pooling[i-1])(kernel_size=(1,pooling_size[i-1]), stride=(1,pooling_size[i-1]), padding=(0,0)))
+      self.out_width = int(self.out_width /pooling_size[i])
+      self.poolings.append(get_pooling(pooling[i])(kernel_size=(1,pooling_size[i]), stride=(1,pooling_size[i]), padding=(0,0)))
       self.bnorms.append(nn.BatchNorm2d(num_filters[i]))
 
     #pooling layer
     
     # pooling_sizes.append(get_pool_size(self.out_width, i))
-    self.poolings.append(get_pooling(pooling[-1])(kernel_size=(1,self.out_width), stride=(1,2), padding=(0,0)))
+    # self.poolings.append(get_pooling(pooling[-1])(kernel_size=(1,self.out_width), stride=(1,2), padding=(0,0)))
 
 #     self.pool = nn.BatchNorm2d(num_filters[-1])
 #     self.out_height = 1
 #     self.out_width = self.out_width
     #linear layer
-    self.out_feature = num_filters[num_layer - 1]
+    self.out_feature = num_filters[num_layer - 1]*self.out_width
     self.fc1 = nn.Linear(in_features=self.out_feature, out_features=mid_units) 
     # self.fc2 = nn.Linear(in_features=mid_units, out_features=100) 
     self.fc3 = nn.Linear(in_features=mid_units, out_features=1)

@@ -7,10 +7,10 @@ import itertools
 import Evaluator
 def params2():
     num_layer = [3]
-    kernel_sizes = [3,5]
-    num_filters = [32, 64, 128, 256]
+    kernel_sizes = [3]
+    num_filters = [64, 128, 256]
     pooling = [0, 1]
-    pooling_size = [1,2,4]
+    pooling_size = [1,2]
     mid_unit = [100, 200, 400]
 #     mid_unit2 = [0, 100, 200, 400]
     learning_rate = [2,3]
@@ -174,7 +174,7 @@ def main():
     size = comm.Get_size()
     rank = comm.Get_rank()
     print(rank)
-    BATCH_SIZE = 10
+    BATCH_SIZE = 1
 
     if rank == 0:
 
@@ -185,10 +185,10 @@ def main():
         #set up sendbuf and recvbuf
         l = params2()
         # l = pd.read_csv("params.csv").drop(["ID"],axis="columns").values.tolist()
-        train_x = pd.read_csv("mpitest/train_x.csv").values.astype(np.float32).reshape(1,-1)
-        test_x = pd.read_csv("mpitest/test_x.csv").drop(["ID"],axis=1).values.astype(np.float32).reshape(1,-1)
-        train_y = pd.read_csv("mpitest/train_y.csv").drop(["ID"],axis=1).values.astype(np.float32)
-        test_y = pd.read_csv("mpitest/test_y.csv").drop(["ID"],axis=1).values.astype(np.float32)
+        train_x = pd.read_csv("train_x_pad.csv").values.astype(np.float32).reshape(1,-1)
+        # test_x = pd.read_csv("test_x.csv").drop(["ID"],axis=1).values.astype(np.float32).reshape(1,-1)
+        train_y = pd.read_csv("train_y.csv").drop(["ID"],axis=1).values.astype(np.float32)
+        # test_y = pd.read_csv("test_y.csv").drop(["ID"],axis=1).values.astype(np.float32)
         send_list = np.array(l, dtype=np.int32)
         print(len(l))
 
@@ -200,8 +200,8 @@ def main():
         for i in range(size-1):
             comm.Send(train_x,dest=i+1, tag=50)
             comm.Send(train_y,dest=i+1, tag=60)
-            comm.Send(test_x,dest=i+1, tag=70)
-            comm.Send(test_y,dest=i+1, tag=80)
+            # comm.Send(test_x,dest=i+1, tag=70)
+            # comm.Send(test_y,dest=i+1, tag=80)
             comm.Send(send_list[i*BATCH_SIZE:(i+1)*BATCH_SIZE], dest=i+1, tag=10)
 
         for i in range(size-1):
@@ -248,17 +248,17 @@ def main():
 
     # worker
     else:
-        train_x = np.empty(9128*(14*155+1), dtype=np.float32)
-        test_x = np.empty(840*14*155, dtype=np.float32)
-        train_y = np.empty(9128, dtype=np.float32)
-        test_y = np.empty(840, dtype=np.float32)
+        train_x = np.empty(11761*(14*155+1), dtype=np.float32)
+        # test_x = np.empty(840*14*155, dtype=np.float32)
+        train_y = np.empty(11761, dtype=np.float32)
+        # test_y = np.empty(840, dtype=np.float32)
         comm.Recv(train_x,source=0, tag=50)
         comm.Recv(train_y, source=0, tag=60)
-        comm.Recv(test_x, source=0, tag=70)
-        comm.Recv(test_y, source=0, tag=80)
+        # comm.Recv(test_x, source=0, tag=70)
+        # comm.Recv(test_y, source=0, tag=80)
         finish = comm.irecv(source=0, tag=30)
 
-        evaluator = Evaluator.Evaluator(train_x.reshape(9128, 14*155+1), train_y, test_x, test_y)
+        evaluator = Evaluator.Evaluator(train_x.reshape(11761, 14*155+1), train_y)
         print("%d is setup" %rank )
 
         while  finish.Get_status() == False:

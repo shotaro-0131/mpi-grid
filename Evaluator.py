@@ -9,13 +9,13 @@ import torch.nn as nn
 from sklearn.metrics import mean_squared_error
 class Evaluator:
 
-    def __init__(self, tr_x, tr_y, te_x, te_y):
+    def __init__(self, tr_x, tr_y):
 
         self.tr_id = tr_x.T[0]
-        self.tr_x = tr_x.T[1:].T.reshape(9128, 155, 1, 14)
+        self.tr_x = tr_x.T[1:].T.reshape(len(tr_y), 155, 1, 14)
         self.tr_y = tr_y
-        self.te_x = te_x.reshape(840, 155, 1, 14)
-        self.te_y = te_y
+        # self.te_x = te_x.reshape(840, 155, 1, 14)
+        # self.te_y = te_y
 
         # print("init complited")
 
@@ -94,32 +94,45 @@ class Evaluator:
             tr_id = [i for i, k in enumerate(self.tr_id) if k in train_index]
             tr_x = self.tr_x[tr_id]
             tr_y = self.tr_y[tr_id]
-            te_x = self.te_x[test_index]
-            te_y = self.te_y[test_index]
+            t_num =np.array([len([j for j,x in enumerate(self.tr_id) if k == x]) for i, k in enumerate(test_index)])
+            f_t_id =np.array([i for i, k in enumerate(self.tr_id) if k in test_index])
+
+            te_x = self.tr_x[f_t_id]
+            te_y = self.tr_y[f_t_id]
             train_set = torch.utils.data.TensorDataset(torch.from_numpy(tr_x).float(),
                                     torch.from_numpy(tr_y.astype(np.float32)))
-            test_set = torch.utils.data.TensorDataset(torch.from_numpy(te_x).float(),
-                                            torch.from_numpy(te_y.astype(np.float32)))
+            # test_set = torch.utils.data.TensorDataset(torch.from_numpy(te_x).float(),
+            #                                 torch.from_numpy(te_y.astype(np.float32)))
             train_loader = DataLoader(train_set, batch_size=BATCHSIZE, shuffle=True, num_workers=2)
-            test_loader = DataLoader(test_set, batch_size=len(test_set), shuffle=True, num_workers=2)
+            # test_loader = DataLoader(test_set, batch_size=len(test_set), shuffle=True, num_workers=2)
 
         
 
-            model = Net.Net(self.num_layers, self.kernel_sizes, self.num_filters, self.pooling, self.mid_unit).to(device)
+            model = Net.Net(self.num_layers, self.kernel_sizes, self.num_filters, self.poolings, self.pooling_size, self.mid_unit).to(device)
             optimizer = self.get_optimizer(model)
             
             for step in range(EPOCH):
                 # print('*',end="")
                 model = self.train(model, device, train_loader, optimizer)
-                # if error_rate == 1:
-                #     return 1e+20
-                # if step > 1 and error_rate > 1000:
-                #     return error_rate
-                # if error_rate > 1e+20:
-                #     return error_rate
-                # if step == 9 and error_rate > 100:
-                #     return error_rate
-            error_rate, r , mse= self.test(model, device, test_loader)
+            model.eval()
+            pred = model(torch.from_numpy(np.array(te_x)).reshape(len(te_x),155,1,14).float())
+            pred = np.array([pred.cpu()[i].item() for i in range(len(pred))])
+            ps = []
+            ta=[]
+            v1 = 0
+            for v in t_num:
+                
+#                 print(v)
+                ps.append(sum(pred[v1:v+v1])/v)
+                ta.append(te_y[v1])
+                v1 += v
+#             print(ta,va_y)
+            ps = np.array(ps)
+            ta = np.array(ta)
+            error_rate = r2_score(y_true=ta,y_pred=ps)
+            r = np.corrcoef(ta.reshape(ps.shape[0]),ps.reshape(ps.shape[0]))[0][1]
+            mse = mean_squared_error(y_true=ta, y_pred=ps)
+            # error_rate, r , mse= self.test(model, device, test_loader)
             mses.append(mse)
             average.append(error_rate)
             ave.append(r)
