@@ -115,28 +115,33 @@ class Evaluator:
                 # print('*',end="")
                 model = self.train(model, device, train_loader, optimizer)
             model.eval()
-            pred = model(torch.from_numpy(np.array(te_x)).reshape(len(te_x),155,1,14).float())
-            pred = np.array([pred.cpu()[i].item() for i in range(len(pred))])
-            ps = []
-            ta=[]
-            v1 = 0
-            for v in t_num:
+            with torch.no_grad():
+                pred = model(torch.from_numpy(te_x).float().to(device, dtype=torch.float32)).view(te_x.shape[0])
+            # pred = np.array([pred.to(device, dtype=torch.float32)[i].item() for i in range(len(pred))])
+            
                 
-#                 print(v)
-                ps.append(sum(pred[v1:v+v1])/v)
-                ta.append(te_y[v1])
-                v1 += v
-#             print(ta,va_y)
-            ps = np.array(ps)
-            ta = np.array(ta)
-            error_rate = r2_score(y_true=ta,y_pred=ps)
-            r = np.corrcoef(ta.reshape(ps.shape[0]),ps.reshape(ps.shape[0]))[0][1]
-            mse = mean_squared_error(y_true=ta, y_pred=ps)
+                ps = []
+                ta=[]
+                v1 = 0
+                for v in t_num:
+                    
+    #                 print(v)
+                    ps.append(sum(pred[v1:v+v1])/v)
+                    ta.append(te_y[v1])
+                    v1 += v
+    #             print(ta,va_y)
+                
+                ps = torch.from_numpy(np.array(ps)).to(device, dtype=torch.float32)
+                ta = torch.from_numpy(np.array(ta)).to(device, dtype=torch.float32)
+                
+                error_rate = r2_score(y_true=ta,y_pred=ps)
+                r = np.corrcoef(ta.numpy().reshape(ps.shape[0]),ps.numpy().reshape(ps.shape[0]))[0][1]
+                mse = mean_squared_error(y_true=ta, y_pred=ps)
             # error_rate, r , mse= self.test(model, device, test_loader)
             mses.append(mse)
             average.append(error_rate)
             ave.append(r)
-            # print(error_rate,r,end=" ")
+            print(error_rate,r,end=" ")
         return sum(average)/3, sum(ave)/3, sum(mses)/3
 
 
