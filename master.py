@@ -4,7 +4,7 @@ import pandas as pd
 import time
 import sys
 import itertools
-import Evaluator
+from Evaluator import Evaluator
 def params2():
     num_layer = [3]
     kernel_sizes = [3]
@@ -185,9 +185,9 @@ def main():
         #set up sendbuf and recvbuf
         l = params2()
         # l = pd.read_csv("params.csv").drop(["ID"],axis="columns").values.tolist()
-        train_x = pd.read_csv("train_x_pad.csv").values.astype(np.float32).reshape(1,-1)
+        train_x = pd.read_csv("mpitest/train_x_pad.csv").values.astype(np.float32).reshape(1,-1)
         # test_x = pd.read_csv("test_x.csv").drop(["ID"],axis=1).values.astype(np.float32).reshape(1,-1)
-        train_y = pd.read_csv("train_y.csv").drop(["ID"],axis=1).values.astype(np.float32)
+        train_y = pd.read_csv("mpitest/train_y.csv").drop(["ID"],axis=1).values.astype(np.float32)
         # test_y = pd.read_csv("test_y.csv").drop(["ID"],axis=1).values.astype(np.float32)
         send_list = np.array(l, dtype=np.int32)
         print(len(l))
@@ -258,7 +258,7 @@ def main():
         # comm.Recv(test_y, source=0, tag=80)
         finish = comm.irecv(source=0, tag=30)
 
-        evaluator = Evaluator.Evaluator(train_x.reshape(11761, 14*155+1), train_y)
+        evaluator = Evaluator(train_x.reshape(11761, 14*155+1), train_y)
         print("%d is setup" %rank )
 
         while  finish.Get_status() == False:
