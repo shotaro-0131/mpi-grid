@@ -59,15 +59,13 @@ class Evaluator:
             for data, target in test_loader:
                 data, target = data.to(device, dtype=torch.float32), target.to(device, dtype=torch.float32)
                 pred = model(data).view(data.shape[0])
-    #             print(pred, target)
                 
                 y_pred.append(np.mean(pred.cpu().numpy()))
-                y_true.append(target[0])
-
+                y_true.append(target[0].cpu().numpy())
 
             error = r2_score(y_true=y_true,y_pred=y_pred)
 
-            r = np.corrcoef(np.array(y_true).reshape(len(y_pred)),np.array(y_pred).reshape(len(y_pred)))[0][1]
+            r = np.corrcoef(y_true,y_pred)[0][1]
 
             mse = mean_squared_error(y_true=y_true,y_pred=y_pred)
 

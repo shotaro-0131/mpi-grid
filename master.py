@@ -19,7 +19,6 @@ def params2():
     for n in num_layer:
 
 
-        for pool in pooling:
             
             for m in mid_unit:
                 for ps1 in pooling_size:
@@ -27,7 +26,7 @@ def params2():
                     rest = int(rest/ps1)
                     k_sizes = []
                     n_filters = []
-                    pooling_size2 = [i for i in pooling_size if i< rest]
+                    pooling_size2 = [i for i in pooling_size if i<= rest]
                     k_sizes.append([i for i in kernel_sizes if i <= rest])
                     if ps1 == 1:
                         pooling1 = [2]
@@ -38,7 +37,7 @@ def params2():
                         for ps2 in pooling_size2:
                             rest = int(rest/ps2)
                 
-                            pooling_size3 = [i for i in pooling_size if i< rest]
+                            pooling_size3 = [i for i in pooling_size if i<= rest]
                             k_sizes.append([i for i in kernel_sizes if i <= rest])
                             if ps2 == 1:
                                 pooling2 = [2]
@@ -174,7 +173,7 @@ def main():
     size = comm.Get_size()
     rank = comm.Get_rank()
     print(rank)
-    BATCH_SIZE = 1
+    BATCH_SIZE = 3
 
     if rank == 0:
 
@@ -248,9 +247,9 @@ def main():
 
     # worker
     else:
-        train_x = np.empty(11761*(14*155+1), dtype=np.float32)
+        train_x = np.empty(11760*(14*155+1), dtype=np.float32)
         # test_x = np.empty(840*14*155, dtype=np.float32)
-        train_y = np.empty(11761, dtype=np.float32)
+        train_y = np.empty(11760, dtype=np.float32)
         # test_y = np.empty(840, dtype=np.float32)
         comm.Recv(train_x,source=0, tag=50)
         comm.Recv(train_y, source=0, tag=60)
@@ -258,7 +257,7 @@ def main():
         # comm.Recv(test_y, source=0, tag=80)
         finish = comm.irecv(source=0, tag=30)
 
-        evaluator = Evaluator(train_x.reshape(11761, 14*155+1), train_y)
+        evaluator = Evaluator(train_x.reshape(11760, 14*155+1), train_y)
         print("%d is setup" %rank )
 
         while  finish.Get_status() == False:
